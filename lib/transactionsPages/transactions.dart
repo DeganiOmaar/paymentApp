@@ -70,17 +70,19 @@ class _TransactionsState extends State<Transactions> {
               "Liste des Transactions",
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
             ),
-            leading :
-              IconButton(
-                onPressed: showPaymentDialog,
-                icon: Icon(LineAwesomeIcons.paypal, color: mainColor,),
-              ),
+            leading: IconButton(
+              onPressed: showPaymentDialog,
+              icon: Icon(LineAwesomeIcons.paypal, color: mainColor),
+            ),
             actions: [
               Text(
-                  "${userData['solde']} \$",
-                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, ),
-              ), 
-              SizedBox(width: 20,)
+                "${userData['solde']} \$",
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(width: 20),
             ],
           ),
           backgroundColor: Colors.white,
@@ -126,11 +128,16 @@ class _TransactionsState extends State<Transactions> {
                               Map<String, dynamic> data =
                                   document.data()! as Map<String, dynamic>;
                               return TransactionCard(
-                                date: DateFormat('dd/MM/yyyy').format(data['time'].toDate()),
-                                heure: DateFormat('HH:mm').format(data['time'].toDate()),
+                                date: DateFormat(
+                                  'dd/MM/yyyy',
+                                ).format(data['time'].toDate()),
+                                heure: DateFormat(
+                                  'HH:mm',
+                                ).format(data['time'].toDate()),
                                 bondeType: data['titre'],
                                 montant: data['montant'],
-                                numeroTransactions: data['numero_transaction'].toString(),
+                                numeroTransactions:
+                                    data['numero_transaction'].toString(),
                               );
                             }).toList(),
                       );
@@ -162,7 +169,7 @@ class _TransactionsState extends State<Transactions> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); //
+                Navigator.of(context).pop();
               },
               child: const Text("Annuler"),
             ),
@@ -171,24 +178,19 @@ class _TransactionsState extends State<Transactions> {
                 final text = amountController.text.trim();
                 if (text.isNotEmpty && int.tryParse(text) != null) {
                   final amount = int.parse(text);
-                  Navigator.of(context).pop(); // Fermer le dialogue
-
+                  Navigator.of(context).pop();
                   try {
-                    // String newTransactionsId = const Uuid().v1();
                     await PaymentManager.makePayment(amount, "USD");
                     await updateSolde(amount);
-                    await enregistrerTransaction();
+                    await enregistrerTransaction(amount);
                     amountController.clear();
                   } catch (e) {
-                    print(e);
+                    print("Erreur paiement ou enregistrement : $e");
                   }
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Montant invalide")),
-                  );
+                  print("Erreur");
                 }
               },
-
               child: const Text("Payer"),
             ),
           ],
@@ -204,7 +206,7 @@ class _TransactionsState extends State<Transactions> {
         .update({'solde': FieldValue.increment(montant)});
   }
 
-  Future<void> enregistrerTransaction() async {
+  Future<void> enregistrerTransaction(int amount) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
     try {
@@ -215,18 +217,14 @@ class _TransactionsState extends State<Transactions> {
       int newNumber = lastNumber + 1;
       String newTransactionsId = const Uuid().v1();
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userData['uid'])
-          .collection('transactions')
-          .doc(newTransactionsId)
-          .set({
-            'transaction_id': newTransactionsId,
-            'time': DateTime.now(),
-            'titre': "Bonde entrante",
-            'montant': "${amountController.text} \$",
-            'numero_transaction': newNumber,
-          });
+      await userRef.collection('transactions').doc(newTransactionsId).set({
+        'transaction_id': newTransactionsId,
+        'time': DateTime.now(),
+        'titre': "Bonde entrante",
+        'montant': "$amount \$",
+        'numero_transaction': newNumber,
+      });
+
       await userRef.update({'last_transaction_number': newNumber});
     } catch (e) {
       print("Erreur enregistrement transaction : $e");

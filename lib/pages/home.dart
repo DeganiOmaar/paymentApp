@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:stripeapp/stripe_payment/payment_manager.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -8,19 +9,14 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Center(
-            child: ElevatedButton(
-              onPressed: ()=>PaymentManager.makePayment(40, "USD"), 
-              child: Text("Pay 40 dollar"),
-              ),
-          )
+      appBar: AppBar(
+        actions: [
+          IconButton(onPressed: (){}, icon: Icon(Icons.qr_code))
         ],
       ),
+      body: MobileScanner(
+        onDetect: (capture) {},
+      )
     );
   }
 }
