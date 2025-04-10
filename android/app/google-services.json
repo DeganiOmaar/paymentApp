@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "708057771404",
+    "project_id": "paymentapp-a048c",
+    "storage_bucket": "paymentapp-a048c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:708057771404:android:a0fdd289de37764e867aa9",
+        "android_client_info": {
+          "package_name": "com.example.stripeapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCKNCg6GfE7NtBzHYfgObsJQGRy-0QLxw0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
