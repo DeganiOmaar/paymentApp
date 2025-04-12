@@ -46,7 +46,7 @@ class _RegisterPageState extends State<RegisterPage> {
         "prenom": prenomController.text,
         "email": emailController.text,
         "password": passwordController.text,
-        "role": "chauffeur",
+        "role": "client",
         "phone": '',
         "solde" : int.parse("0"),
         'last_transaction_number' : int.parse("0"),

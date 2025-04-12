@@ -14,6 +14,7 @@ import 'package:stripeapp/notificationsPages/notifications.dart';
 import 'package:stripeapp/pages/qrcodePages/member_list.dart';
 import 'package:stripeapp/pages/qrcodePages/qr_code_page.dart';
 import 'package:stripeapp/trajetScreens/ajouter-trajet.dart';
+import 'package:uuid/uuid.dart';
 import '../shared/colors.dart';
 
 class TrajetList extends StatefulWidget {
@@ -83,7 +84,7 @@ class _TrajetListState extends State<TrajetList> {
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
             ),
             actions: [
-              userData['role'] == 'conducteur'
+              userData['role'] == 'admin'
                   ? IconButton(
                     icon: const Icon(
                       Icons.add_circle_outline,
@@ -93,12 +94,15 @@ class _TrajetListState extends State<TrajetList> {
                       Get.to(() => const AjouterTrajet());
                     },
                   )
-                  : IconButton(
+                  :  userData['role'] == 'client'? IconButton(
                     onPressed: () {
-                      Get.to(()=>Notifications());
+                      Get.to(() => Notifications());
                     },
-                    icon: Icon(Icons.notifications_none_rounded, color: blackColor),
-                  ),
+                    icon: Icon(
+                      Icons.notifications_none_rounded,
+                      color: blackColor,
+                    ),
+                  ) : SizedBox(),
             ],
           ),
           body: StreamBuilder<QuerySnapshot>(
@@ -133,10 +137,10 @@ class _TrajetListState extends State<TrajetList> {
                           children: [
                             GestureDetector(
                               onTap: () async {
-                                if (userData['role'] == 'client') {
+                                if (userData['role'] == 'admin') {
                                   // aaaaaaaa;
                                 }
-                                if (userData['role'] == "admin") {
+                                if (userData['role'] == "client") {
                                   if (data['disponible'] == 'non') {
                                     QuickAlert.show(
                                       context: context,
@@ -148,9 +152,22 @@ class _TrajetListState extends State<TrajetList> {
                                     final trajetId = data['trajet_id'];
                                     final montant = data['prix'].toString();
                                     await addMemeber(trajetId, montant);
+
+                                    String newNotificationsId =
+                                        const Uuid().v1();
+                                    await FirebaseFirestore.instance
+                                        .collection('notification')
+                                        .doc(newNotificationsId)
+                                        .set({
+                                          'notification_id': newNotificationsId,
+                                          'date': DateTime.now(),
+                                          'titre': "Client reservation",
+                                          'content':
+                                              "Vous avez une nouvelle reservation",
+                                        });
                                   }
                                 }
-                                if (userData['role'] == "chauffeur") {
+                                if (userData['role'] == "conducteur") {
                                   Get.to(
                                     () => MembersList(
                                       trajetId: data['trajet_id'],

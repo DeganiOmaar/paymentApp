@@ -22,7 +22,8 @@ class _QRCodeDisplayPageState extends State<QRCodeDisplayPage> {
 
   Future<void> loadQRData() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
     if (doc.exists && doc.data()!.containsKey('qr_data')) {
       setState(() {
@@ -41,10 +42,10 @@ class _QRCodeDisplayPageState extends State<QRCodeDisplayPage> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
+        backgroundColor: Colors.white,
         body: Center(child: CircularProgressIndicator()),
       );
     }
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -53,15 +54,13 @@ class _QRCodeDisplayPageState extends State<QRCodeDisplayPage> {
         centerTitle: true,
       ),
       body: Center(
-        child: qrData != null
-            ? QrImageView(
-                data: qrData!,
-                size: 250,
-              )
-            : const Text(
-                "Vous n’avez réservé aucun trajet.",
-                style: TextStyle(fontSize: 18),
-              ),
+        child:
+            qrData != null
+                ? QrImageView(data: qrData!, size: 250)
+                : const Text(
+                  "Vous n’avez réservé aucun trajet.",
+                  style: TextStyle(fontSize: 18),
+                ),
       ),
     );
   }
