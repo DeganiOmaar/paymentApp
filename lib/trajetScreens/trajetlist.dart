@@ -2,6 +2,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
@@ -9,6 +10,7 @@ import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
+import 'package:stripeapp/notificationsPages/notifications.dart';
 import 'package:stripeapp/pages/qrcodePages/member_list.dart';
 import 'package:stripeapp/pages/qrcodePages/qr_code_page.dart';
 import 'package:stripeapp/trajetScreens/ajouter-trajet.dart';
@@ -81,7 +83,7 @@ class _TrajetListState extends State<TrajetList> {
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
             ),
             actions: [
-              userData['role'] == 'admin'
+              userData['role'] == 'conducteur'
                   ? IconButton(
                     icon: const Icon(
                       Icons.add_circle_outline,
@@ -91,7 +93,12 @@ class _TrajetListState extends State<TrajetList> {
                       Get.to(() => const AjouterTrajet());
                     },
                   )
-                  : SizedBox(),
+                  : IconButton(
+                    onPressed: () {
+                      Get.to(()=>Notifications());
+                    },
+                    icon: Icon(Icons.notifications_none_rounded, color: blackColor),
+                  ),
             ],
           ),
           body: StreamBuilder<QuerySnapshot>(
@@ -126,25 +133,29 @@ class _TrajetListState extends State<TrajetList> {
                           children: [
                             GestureDetector(
                               onTap: () async {
-                              if (userData['role'] == 'client') {
-                                // aaaaaaaa;
-                              }
-                              if (userData['role'] == "admin") {
-                                  if (data['disponible'] == 'non') {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.warning,
-                                    title: 'Acces interdit',
-                                    text: 'Tous les places sont reservées',
-                                  );
-                                } else {
-                                  final trajetId = data['trajet_id'];
-                                  final montant = data['prix'].toString();
-                                  await addMemeber(trajetId, montant);
+                                if (userData['role'] == 'client') {
+                                  // aaaaaaaa;
                                 }
-                              }
-                               if (userData['role'] == "chauffeur") {
-                                  Get.to(()=>MembersList(trajetId: data['trajet_id']));
+                                if (userData['role'] == "admin") {
+                                  if (data['disponible'] == 'non') {
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.warning,
+                                      title: 'Acces interdit',
+                                      text: 'Tous les places sont reservées',
+                                    );
+                                  } else {
+                                    final trajetId = data['trajet_id'];
+                                    final montant = data['prix'].toString();
+                                    await addMemeber(trajetId, montant);
+                                  }
+                                }
+                                if (userData['role'] == "chauffeur") {
+                                  Get.to(
+                                    () => MembersList(
+                                      trajetId: data['trajet_id'],
+                                    ),
+                                  );
                                 }
                               },
 
@@ -735,7 +746,7 @@ class _TrajetListState extends State<TrajetList> {
     // ✅ Ajouter la réservation
     await reservationRef.set({
       'user_id': userId,
-      'solde' : userData['solde'],
+      'solde': userData['solde'],
       'nom': userData['nom'],
       'prenom': userData['prenom'],
       'montant': montant,
@@ -757,10 +768,11 @@ class _TrajetListState extends State<TrajetList> {
       text: 'Vous avez réservé votre place.',
     );
     await FirebaseFirestore.instance
-    .collection('users')
-    .doc(userData['uid'])
-    .update({
-      'qr_data': 'user_id:$userId,montant:$montant,solde:${userData['solde']}',
-    });
+        .collection('users')
+        .doc(userData['uid'])
+        .update({
+          'qr_data':
+              'user_id:$userId,montant:$montant,solde:${userData['solde']}',
+        });
   }
 }

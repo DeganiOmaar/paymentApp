@@ -26,11 +26,11 @@ class _TransactionsState extends State<Transactions> {
       isLoading = true;
     });
     try {
-      DocumentSnapshot<Map<String, dynamic>> snapshot =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(FirebaseAuth.instance.currentUser!.uid)
-              .get();
+      DocumentSnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
+          .instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .get();
 
       userData = snapshot.data()!;
     } catch (e) {
@@ -52,102 +52,98 @@ class _TransactionsState extends State<Transactions> {
   Widget build(BuildContext context) {
     return isLoading
         ? Scaffold(
-          backgroundColor: Colors.white,
-          body: Center(
-            child: LoadingAnimationWidget.discreteCircle(
-              size: 32,
-              color: const Color.fromARGB(255, 16, 16, 16),
-              secondRingColor: Colors.indigo,
-              thirdRingColor: Colors.pink.shade400,
-            ),
-          ),
-        )
-        : Scaffold(
-          appBar: AppBar(
             backgroundColor: Colors.white,
-            centerTitle: true,
-            title: const Text(
-              "Liste des Transactions",
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
-            ),
-            leading: IconButton(
-              onPressed: showPaymentDialog,
-              icon: Icon(LineAwesomeIcons.paypal, color: mainColor),
-            ),
-            actions: [
-              Text(
-                "${userData['solde']} \$",
-                style: TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
-                ),
+            body: Center(
+              child: LoadingAnimationWidget.discreteCircle(
+                size: 32,
+                color: const Color.fromARGB(255, 16, 16, 16),
+                secondRingColor: Colors.indigo,
+                thirdRingColor: Colors.pink.shade400,
               ),
-              SizedBox(width: 20),
-            ],
-          ),
-          backgroundColor: Colors.white,
-          body: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Gap(15),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream:
-                        FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(userData['uid'])
-                            .collection("transactions")
-                            .orderBy('numero_transaction', descending: true)
-                            .snapshots(),
-                    builder: (
-                      BuildContext context,
-                      AsyncSnapshot<QuerySnapshot> snapshot,
-                    ) {
-                      if (snapshot.hasError) {
-                        return const Text('Something went wrong');
-                      }
-
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(
-                          child: LoadingAnimationWidget.discreteCircle(
-                            size: 32,
-                            color: const Color.fromARGB(255, 16, 16, 16),
-                            secondRingColor: Colors.indigo,
-                            thirdRingColor: Colors.pink.shade400,
-                          ),
-                        );
-                      }
-
-                      return ListView(
-                        children:
-                            snapshot.data!.docs.map((
-                              DocumentSnapshot document,
-                            ) {
-                              Map<String, dynamic> data =
-                                  document.data()! as Map<String, dynamic>;
-                              return TransactionCard(
-                                date: DateFormat(
-                                  'dd/MM/yyyy',
-                                ).format(data['time'].toDate()),
-                                heure: DateFormat(
-                                  'HH:mm',
-                                ).format(data['time'].toDate()),
-                                bondeType: data['titre'],
-                                montant: data['montant'],
-                                numeroTransactions:
-                                    data['numero_transaction'].toString(),
-                              );
-                            }).toList(),
-                      );
-                    },
+            ),
+          )
+        : Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              centerTitle: true,
+              title: const Text(
+                "Liste des Transactions",
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
+              ),
+              leading: IconButton(
+                onPressed: showPaymentDialog,
+                icon: Icon(LineAwesomeIcons.paypal, color: mainColor),
+              ),
+              actions: [
+                Text(
+                  "${userData['solde']} \$",
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
+                SizedBox(width: 20),
               ],
             ),
-          ),
-        );
+            backgroundColor: Colors.white,
+            body: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userData['uid'])
+                          .collection("transactions")
+                          .orderBy('numero_transaction', descending: true)
+                          .snapshots(),
+                      builder: (
+                        BuildContext context,
+                        AsyncSnapshot<QuerySnapshot> snapshot,
+                      ) {
+                        if (snapshot.hasError) {
+                          return const Text('Something went wrong');
+                        }
+
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(
+                            child: LoadingAnimationWidget.discreteCircle(
+                              size: 32,
+                              color: const Color.fromARGB(255, 16, 16, 16),
+                              secondRingColor: Colors.indigo,
+                              thirdRingColor: Colors.pink.shade400,
+                            ),
+                          );
+                        }
+
+                        return ListView(
+                          children: snapshot.data!.docs.map((
+                            DocumentSnapshot document,
+                          ) {
+                            Map<String, dynamic> data =
+                                document.data()! as Map<String, dynamic>;
+                            return TransactionCard(
+                              date: DateFormat('dd/MM/yyyy')
+                                  .format(data['time'].toDate()),
+                              heure: DateFormat('HH:mm')
+                                  .format(data['time'].toDate()),
+                              bondeType: data['titre'],
+                              montant: data['montant'],
+                              numeroTransactions:
+                                  data['numero_transaction'].toString(),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
   }
 
   void showPaymentDialog() {
@@ -184,11 +180,12 @@ class _TransactionsState extends State<Transactions> {
                     await updateSolde(amount);
                     await enregistrerTransaction(amount);
                     amountController.clear();
+                    await getData(); // 🔄 Refresh UI
                   } catch (e) {
                     print("Erreur paiement ou enregistrement : $e");
                   }
                 } else {
-                  print("Erreur");
+                  print("Erreur de saisie montant.");
                 }
               },
               child: const Text("Payer"),
@@ -199,11 +196,16 @@ class _TransactionsState extends State<Transactions> {
     );
   }
 
-  Future<void> updateSolde(int montant) {
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(userData['uid'])
-        .update({'solde': FieldValue.increment(montant)});
+  Future<void> updateSolde(int montant) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+
+    await userRef.update({'solde': FieldValue.increment(montant)});
+
+    // 🔁 Mettre à jour dans réservations
+    final snapshot = await userRef.get();
+    final solde = snapshot.data()?['solde'] ?? 0;
+    await mettreAJourSoldeDansReservations(uid, solde);
   }
 
   Future<void> enregistrerTransaction(int amount) async {
@@ -228,6 +230,25 @@ class _TransactionsState extends State<Transactions> {
       await userRef.update({'last_transaction_number': newNumber});
     } catch (e) {
       print("Erreur enregistrement transaction : $e");
+    }
+  }
+
+  /// 🔄 Mise à jour des réservations après ajout solde
+  Future<void> mettreAJourSoldeDansReservations(String userId, int nouveauSolde) async {
+    final trajetsSnapshot = await FirebaseFirestore.instance.collection('trajet').get();
+
+    for (var trajet in trajetsSnapshot.docs) {
+      final reservationRef = FirebaseFirestore.instance
+          .collection('trajet')
+          .doc(trajet.id)
+          .collection('reservations')
+          .doc(userId);
+
+      final reservationSnap = await reservationRef.get();
+
+      if (reservationSnap.exists) {
+        await reservationRef.update({'solde': nouveauSolde});
+      }
     }
   }
 }
