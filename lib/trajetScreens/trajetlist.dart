@@ -12,7 +12,6 @@ import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:stripeapp/notificationsPages/notifications.dart';
 import 'package:stripeapp/pages/qrcodePages/member_list.dart';
-import 'package:stripeapp/pages/qrcodePages/qr_code_page.dart';
 import 'package:stripeapp/trajetScreens/ajouter-trajet.dart';
 import 'package:uuid/uuid.dart';
 import '../shared/colors.dart';

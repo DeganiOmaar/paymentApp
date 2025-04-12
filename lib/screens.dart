@@ -6,8 +6,6 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:stripeapp/crudChauffeur/chauffeur_list.dart';
-import 'package:stripeapp/notificationsPages/notifications.dart';
-import 'package:stripeapp/pages/home.dart';
 import 'package:stripeapp/pages/qrcodePages/qr_code_display.dart';
 import 'package:stripeapp/transactionsPages/transactions.dart';
 import 'package:stripeapp/shared/colors.dart';

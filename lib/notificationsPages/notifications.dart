@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-
 import '../shared/colors.dart';
 
 class Notifications extends StatefulWidget {
@@ -111,7 +110,6 @@ class _NotificationsState extends State<Notifications> {
                         )
                       ],
                     );
-                    ;
                   }).toList(),
                 );
               },

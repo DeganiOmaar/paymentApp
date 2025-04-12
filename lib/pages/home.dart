@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:gap/gap.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
-import 'package:stripeapp/stripe_payment/payment_manager.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,12 +20,6 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(onPressed: (){}, icon: Icon(Icons.notifications))
         ],
       ),
-      // body: MobileScanner(
-      //   controller: MobileScannerController(
-      //     detectionSpeed:  DetectionSpeed.noDuplicates
-      //   ),
-      //   onDetect: (capture) {},
-      // )
 
       body: Padding(padding: 
       EdgeInsets.all(20),
