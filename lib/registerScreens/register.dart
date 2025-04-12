@@ -46,10 +46,11 @@ class _RegisterPageState extends State<RegisterPage> {
         "prenom": prenomController.text,
         "email": emailController.text,
         "password": passwordController.text,
-        "role": "admin",
+        "role": "chauffeur",
         "phone": '',
         "solde" : int.parse("0"),
         'last_transaction_number' : int.parse("0"),
+        // 'qr_data' : '',
         "uid": FirebaseAuth.instance.currentUser!.uid,
       });
       if (!mounted) return;

@@ -108,8 +108,10 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const Row(
                 children: [
-                  Text("Accédez à votre espace personnel en toute sécurité.",
-                      style: TextStyle(color: Colors.black)),
+                  Expanded(
+                    child: Text("Accédez à votre espace personnel en toute sécurité.",
+                        style: TextStyle(color: Colors.black)),
+                  ),
                 ],
               ),
               const SizedBox(

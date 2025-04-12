@@ -7,6 +7,7 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:stripeapp/pages/home.dart';
+import 'package:stripeapp/pages/qrcodePages/qr_code_display.dart';
 import 'package:stripeapp/transactionsPages/transactions.dart';
 import 'package:stripeapp/shared/colors.dart';
 import 'profilePages/profile.dart';
@@ -118,7 +119,8 @@ class _ScreensState extends State<Screens> {
         children:  [
           const TrajetList(),
           const Transactions(),
-          const  HomeScreen(),
+          // const  HomeScreen(),
+          QRCodeDisplayPage(),
           const Profile(),
         ],
       ),

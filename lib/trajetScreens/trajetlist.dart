@@ -9,6 +9,8 @@ import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
+import 'package:stripeapp/pages/qrcodePages/member_list.dart';
+import 'package:stripeapp/pages/qrcodePages/qr_code_page.dart';
 import 'package:stripeapp/trajetScreens/ajouter-trajet.dart';
 import '../shared/colors.dart';
 
@@ -123,45 +125,28 @@ class _TrajetListState extends State<TrajetList> {
                         child: Column(
                           children: [
                             GestureDetector(
-                           onTap: () async {
-  final userId = userData['uid'];
-  final trajetId = data['trajet_id'];
-
-  // Vérifier si l'utilisateur a déjà réservé
-  final reservationRef = FirebaseFirestore.instance
-      .collection('trajet')
-      .doc(trajetId)
-      .collection('reservations')
-      .doc(userId);
-
-  final reservationSnapshot = await reservationRef.get();
-
-  if (reservationSnapshot.exists) {
-    // Déjà réservé ❌
-    QuickAlert.show(
-      context: context,
-      type: QuickAlertType.error,
-      title: 'Déjà réservé',
-      text: 'Vous avez déjà réservé ce trajet.',
-    );
-  } else {
-    // Réservation possible ✅
-    await reservationRef.set({
-      'user_id': userId,
-      'nom': userData['nom'],
-      'prenom': userData['prenom'],
-      'montant': data['prix'],
-      'paye': 'non',
-    });
-
-    QuickAlert.show(
-      context: context,
-      type: QuickAlertType.success,
-      title: 'Succès',
-      text: 'Vous avez réservé votre place.',
-    );
-  }
-},
+                              onTap: () async {
+                              if (userData['role'] == 'client') {
+                                // aaaaaaaa;
+                              }
+                              if (userData['role'] == "admin") {
+                                  if (data['disponible'] == 'non') {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.warning,
+                                    title: 'Acces interdit',
+                                    text: 'Tous les places sont reservées',
+                                  );
+                                } else {
+                                  final trajetId = data['trajet_id'];
+                                  final montant = data['prix'].toString();
+                                  await addMemeber(trajetId, montant);
+                                }
+                              }
+                               if (userData['role'] == "chauffeur") {
+                                  Get.to(()=>MembersList(trajetId: data['trajet_id']));
+                                }
+                              },
 
                               child: Card(
                                 shape: RoundedRectangleBorder(
@@ -215,6 +200,20 @@ class _TrajetListState extends State<TrajetList> {
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
+                                          Gap(10),
+                                          Text(
+                                            "Nombre des places 🔢",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Gap(10),
+                                          Text(
+                                            "Disponibilité 👌",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                       const Gap(20),
@@ -240,7 +239,6 @@ class _TrajetListState extends State<TrajetList> {
                                             Text(
                                               data['start_time'],
                                               style: const TextStyle(
-                                                // fontSize: 14,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -248,18 +246,38 @@ class _TrajetListState extends State<TrajetList> {
                                             Text(
                                               data['end_time'],
                                               style: const TextStyle(
-                                                // fontSize: 14,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                             const Gap(10),
                                             Text(
-                                              // "50 DT",
                                               "${data['prix']} DT",
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
+                                            const Gap(10),
+                                            Text(
+                                              data['nombre_places'].toString(),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const Gap(10),
+                                            data['disponible'].toString() ==
+                                                    "oui"
+                                                ? Text(
+                                                  "✅",
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                )
+                                                : Text(
+                                                  "❌",
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
                                           ],
                                         ),
                                       ),
@@ -677,20 +695,72 @@ class _TrajetListState extends State<TrajetList> {
         );
   }
 
-  Future<void> addMemeber(String trajetId, String montant) {
-    return FirebaseFirestore.instance
+  Future<void> addMemeber(String trajetId, String montant) async {
+    final userId = userData['uid'];
+    final trajetRef = FirebaseFirestore.instance
         .collection('trajet')
-        .doc(trajetId)
-        .collection('reservations')
-        .doc(userData['uid'])
-        .set({
-          'user_id': userData['uid'],
-          'nom': userData['nom'],
-          'prenom': userData['prenom'],
-          'montant': int.parse(montant),
-          'paye': 'non',
-        })
-        .then((value) => print("User Updated"))
-        .catchError((error) => print("Failed to update user: $error"));
+        .doc(trajetId);
+    final reservationRef = trajetRef.collection('reservations').doc(userId);
+
+    // 🔁 Vérifier si l'utilisateur a déjà réservé
+    final reservationSnapshot = await reservationRef.get();
+    if (reservationSnapshot.exists) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Déjà réservé',
+        text: 'Vous avez déjà réservé ce trajet.',
+      );
+      return;
+    }
+
+    // 🔁 Vérifier le nombre de places
+    final trajetSnapshot = await trajetRef.get();
+    final trajetData = trajetSnapshot.data();
+
+    if (trajetData == null) return;
+
+    int currentPlaces = trajetData['nombre_places'] ?? 0;
+
+    if (currentPlaces <= 0) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Complet',
+        text: 'Ce trajet est complet, aucune place disponible.',
+      );
+      return;
+    }
+
+    // ✅ Ajouter la réservation
+    await reservationRef.set({
+      'user_id': userId,
+      'solde' : userData['solde'],
+      'nom': userData['nom'],
+      'prenom': userData['prenom'],
+      'montant': montant,
+      'paye': 'non',
+    });
+
+    // ✅ Mettre à jour le nombre de places
+    int newPlaces = currentPlaces - 1;
+    Map<String, dynamic> updates = {'nombre_places': newPlaces};
+
+    if (newPlaces <= 0) {
+      updates['disponible'] = 'non';
+    }
+    await trajetRef.update(updates);
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.success,
+      title: 'Succès',
+      text: 'Vous avez réservé votre place.',
+    );
+    await FirebaseFirestore.instance
+    .collection('users')
+    .doc(userData['uid'])
+    .update({
+      'qr_data': 'user_id:$userId,montant:$montant,solde:${userData['solde']}',
+    });
   }
 }
