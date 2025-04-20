@@ -4,7 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:stripeapp/crudChauffeur/chauffeur_list.dart';
 import 'package:stripeapp/pages/qrcodePages/qr_code_display.dart';
 import 'package:stripeapp/transactionsPages/transactions.dart';
@@ -31,7 +30,7 @@ class _ScreensState extends State<Screens> {
     try {
       DocumentSnapshot<Map<String, dynamic>> snapshot =
           await FirebaseFirestore.instance
-              .collection('users')
+              .collection('users')  //client
               .doc(FirebaseAuth.instance.currentUser!.uid)
               .get();
 
@@ -67,15 +66,11 @@ class _ScreensState extends State<Screens> {
         ? Scaffold(
           backgroundColor: Colors.white,
           body: Center(
-            child: LoadingAnimationWidget.discreteCircle(
-              size: 32,
-              color: const Color.fromARGB(255, 16, 16, 16),
-              secondRingColor: Colors.indigo,
-              thirdRingColor: Colors.pink.shade400,
-            ),
+            child: CircularProgressIndicator(color: Colors.black,),
           ),
         )
-        : Scaffold(
+        : 
+        Scaffold(
           backgroundColor: Colors.white,
           bottomNavigationBar: Padding(
             padding: const EdgeInsets.only(
@@ -103,25 +98,26 @@ class _ScreensState extends State<Screens> {
                 });
               },
               tabs: [
-                const GButton(icon: LineAwesomeIcons.home_solid, text: 'Home'),
+                 
+                 userData['role'] == 'client' ?
+                GButton(icon: LineAwesomeIcons.money_bill_alt, text: 'Transactions') :
+                GButton(icon: LineAwesomeIcons.home_solid, text: 'Trajet List'),
+                
                 userData['role'] == 'admin'
                     ? const GButton(
                       icon: Icons.person_2_outlined,
                       text: 'Conducteurs',
                     )
-                    : const GButton(
-                      icon: Icons.wallet_outlined,
-                      text: 'Transactions',
-                    ),
-                userData['role'] == 'client'
-                    ? const GButton(
-                      icon: Icons.qr_code_2_outlined,
-                      text: 'Qr code',
-                    )
-                    : const GButton(
+                    :  userData['role'] == 'conducteur' ?
+                     const GButton(
                       icon: Icons.notification_important_outlined,
                       text: 'Notifications',
+                    ): 
+                    const GButton(
+                      icon: Icons.qr_code,
+                      text: 'QR Code',
                     ),
+
                 const GButton(
                   icon: CupertinoIcons.person_alt_circle,
                   text: 'Profile',
@@ -134,13 +130,16 @@ class _ScreensState extends State<Screens> {
             physics: const NeverScrollableScrollPhysics(),
             controller: _pageController,
             children: [
-              const TrajetList(),
+              userData['role'] == 'client'   ?
+               const Transactions() : 
+               const TrajetList(),
+
               userData['role'] == 'admin'
-                  ? const ChaffuerList()
-                  : const Transactions(),
-              userData['role'] == 'client'
-                  ? const QRCodeDisplayPage()
-                  : const NotifChaufferAdmin(),
+                  ? const ChaffuerList() :
+              userData['role'] == 'conducteur' ?
+              const NotifChaufferAdmin() :
+              const QRCodeDisplayPage(),
+
               const Profile(),
             ],
           ),

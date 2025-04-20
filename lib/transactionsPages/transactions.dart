@@ -26,11 +26,11 @@ class _TransactionsState extends State<Transactions> {
       isLoading = true;
     });
     try {
-      DocumentSnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
-          .instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
+      DocumentSnapshot<Map<String, dynamic>> snapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(FirebaseAuth.instance.currentUser!.uid)
+              .get();
 
       userData = snapshot.data()!;
     } catch (e) {
@@ -77,17 +77,17 @@ class _TransactionsState extends State<Transactions> {
               actions: [
                 Text(
                   "${userData['solde']} \$",
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(width: 20),
+                const SizedBox(width: 20),
               ],
             ),
             backgroundColor: Colors.white,
             body: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -99,16 +99,12 @@ class _TransactionsState extends State<Transactions> {
                           .collection("transactions")
                           .orderBy('numero_transaction', descending: true)
                           .snapshots(),
-                      builder: (
-                        BuildContext context,
-                        AsyncSnapshot<QuerySnapshot> snapshot,
-                      ) {
+                      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                         if (snapshot.hasError) {
-                          return const Text('Something went wrong');
+                          return const Text('Une erreur est survenue.');
                         }
 
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
                           return Center(
                             child: LoadingAnimationWidget.discreteCircle(
                               size: 32,
@@ -120,20 +116,18 @@ class _TransactionsState extends State<Transactions> {
                         }
 
                         return ListView(
-                          children: snapshot.data!.docs.map((
-                            DocumentSnapshot document,
-                          ) {
-                            Map<String, dynamic> data =
-                                document.data()! as Map<String, dynamic>;
+                          children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                            Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
                             return TransactionCard(
-                              date: DateFormat('dd/MM/yyyy')
-                                  .format(data['time'].toDate()),
-                              heure: DateFormat('HH:mm')
-                                  .format(data['time'].toDate()),
+                              date: DateFormat('dd/MM/yyyy').format(data['time'].toDate()),
+                              heure: DateFormat('HH:mm').format(data['time'].toDate()),
                               bondeType: data['titre'],
-                              montant: data['montant'],
-                              numeroTransactions:
-                                  data['numero_transaction'].toString(),
+                              montant: data['montant'] is num
+                                  ? data['montant']
+                                  : num.tryParse(
+                                        data['montant'].toString().replaceAll(RegExp(r'[^\d.-]'), ''),
+                                      ) ?? 0,
+                              numeroTransactions: data['numero_transaction'].toString(),
                             );
                           }).toList(),
                         );
@@ -154,7 +148,7 @@ class _TransactionsState extends State<Transactions> {
           title: const Text("Entrer le montant"),
           content: TextField(
             controller: amountController,
-            keyboardType: TextInputType.number,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               hintText: "Montant en USD",
               border: OutlineInputBorder(
@@ -172,20 +166,20 @@ class _TransactionsState extends State<Transactions> {
             ElevatedButton(
               onPressed: () async {
                 final text = amountController.text.trim();
-                if (text.isNotEmpty && int.tryParse(text) != null) {
-                  final amount = int.parse(text);
+                if (text.isNotEmpty && double.tryParse(text) != null) {
+                  final amount = double.parse(text);
                   Navigator.of(context).pop();
                   try {
-                    await PaymentManager.makePayment(amount, "USD");
+                    await PaymentManager.makePayment(amount.toInt(), "USD");
                     await updateSolde(amount);
                     await enregistrerTransaction(amount);
                     amountController.clear();
-                    await getData(); // 🔄 Refresh UI
+                    await getData(); // Refresh UI
                   } catch (e) {
-                    print("Erreur paiement ou enregistrement : $e");
+                    print("❌ Erreur paiement ou enregistrement : $e");
                   }
                 } else {
-                  print("Erreur de saisie montant.");
+                  print("❌ Montant invalide.");
                 }
               },
               child: const Text("Payer"),
@@ -196,45 +190,41 @@ class _TransactionsState extends State<Transactions> {
     );
   }
 
-  Future<void> updateSolde(int montant) async {
+  Future<void> updateSolde(double montant) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
 
     await userRef.update({'solde': FieldValue.increment(montant)});
 
-    // 🔁 Mettre à jour dans réservations
     final snapshot = await userRef.get();
     final solde = snapshot.data()?['solde'] ?? 0;
     await mettreAJourSoldeDansReservations(uid, solde);
   }
 
-  Future<void> enregistrerTransaction(int amount) async {
+  Future<void> enregistrerTransaction(double amount) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
     try {
-      final userSnapshot = await userRef.get();
-      final userData = userSnapshot.data()!;
-      int lastNumber = userData['last_transaction_number'] ?? 0;
+      await userRef.update({'last_transaction_number': FieldValue.increment(1)});
 
-      int newNumber = lastNumber + 1;
+      final userSnapshot = await userRef.get();
+      final newNumber = userSnapshot.data()?['last_transaction_number'] ?? 1;
+
       String newTransactionsId = const Uuid().v1();
 
       await userRef.collection('transactions').doc(newTransactionsId).set({
         'transaction_id': newTransactionsId,
         'time': DateTime.now(),
         'titre': "Bonde entrante",
-        'montant': "$amount \$",
+        'montant': amount,
         'numero_transaction': newNumber,
       });
-
-      await userRef.update({'last_transaction_number': newNumber});
     } catch (e) {
-      print("Erreur enregistrement transaction : $e");
+      print("❌ Erreur enregistrement transaction : $e");
     }
   }
 
-  /// 🔄 Mise à jour des réservations après ajout solde
-  Future<void> mettreAJourSoldeDansReservations(String userId, int nouveauSolde) async {
+  Future<void> mettreAJourSoldeDansReservations(String userId, num nouveauSolde) async {
     final trajetsSnapshot = await FirebaseFirestore.instance.collection('trajet').get();
 
     for (var trajet in trajetsSnapshot.docs) {

@@ -2,18 +2,12 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:quickalert/models/quickalert_type.dart';
-import 'package:quickalert/widgets/quickalert_dialog.dart';
-import 'package:stripeapp/notificationsPages/notifications.dart';
-import 'package:stripeapp/pages/qrcodePages/member_list.dart';
+import 'package:stripeapp/pages/qrcodePages/qr_scanner_page.dart';
 import 'package:stripeapp/trajetScreens/ajouter-trajet.dart';
-import 'package:uuid/uuid.dart';
 import '../shared/colors.dart';
 
 class TrajetList extends StatefulWidget {
@@ -24,23 +18,22 @@ class TrajetList extends StatefulWidget {
 }
 
 class _TrajetListState extends State<TrajetList> {
-  TextEditingController pointdepartController = TextEditingController();
-  TextEditingController destinationController = TextEditingController();
-  TextEditingController prixController = TextEditingController();
-  TextEditingController nombredePlaceController = TextEditingController();
   bool isLoading = false;
   Map userData = {};
+
+  final TextEditingController pointdepartController = TextEditingController();
+  final TextEditingController destinationController = TextEditingController();
+  final TextEditingController prixController = TextEditingController();
 
   getData() async {
     setState(() {
       isLoading = true;
     });
     try {
-      DocumentSnapshot<Map<String, dynamic>> snapshot =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(FirebaseAuth.instance.currentUser!.uid)
-              .get();
+      DocumentSnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .get();
 
       userData = snapshot.data()!;
     } catch (e) {
@@ -62,29 +55,28 @@ class _TrajetListState extends State<TrajetList> {
   Widget build(BuildContext context) {
     return isLoading
         ? Scaffold(
-          backgroundColor: Colors.white,
-          body: Center(
-            child: LoadingAnimationWidget.discreteCircle(
-              size: 32,
-              color: const Color.fromARGB(255, 16, 16, 16),
-              secondRingColor: Colors.indigo,
-              thirdRingColor: Colors.pink.shade400,
-            ),
-          ),
-        )
-        : Scaffold(
-          backgroundColor: Colors.white,
-          resizeToAvoidBottomInset: false,
-          appBar: AppBar(
             backgroundColor: Colors.white,
-            centerTitle: true,
-            title: const Text(
-              "Liste des Trajets",
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
+            body: Center(
+              child: LoadingAnimationWidget.discreteCircle(
+                size: 32,
+                color: const Color.fromARGB(255, 16, 16, 16),
+                secondRingColor: Colors.indigo,
+                thirdRingColor: Colors.pink.shade400,
+              ),
             ),
-            actions: [
-              userData['role'] == 'admin'
-                  ? IconButton(
+          )
+        : Scaffold(
+            backgroundColor: Colors.white,
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              centerTitle: true,
+              title: const Text(
+                "Liste des Trajets",
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
+              ),
+              actions: [
+                if (userData['role'] == 'admin')
+                  IconButton(
                     icon: const Icon(
                       Icons.add_circle_outline,
                       color: mainColor,
@@ -92,703 +84,207 @@ class _TrajetListState extends State<TrajetList> {
                     onPressed: () {
                       Get.to(() => const AjouterTrajet());
                     },
-                  )
-                  :  userData['role'] == 'client'? IconButton(
-                    onPressed: () {
-                      Get.to(() => Notifications());
-                    },
-                    icon: Icon(
-                      Icons.notifications_none_rounded,
-                      color: blackColor,
-                    ),
-                  ) : SizedBox(),
-            ],
-          ),
-          body: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('trajet').snapshots(),
-            builder: (
-              BuildContext context,
-              AsyncSnapshot<QuerySnapshot> snapshot,
-            ) {
-              if (snapshot.hasError) {
-                return const Text('Something went wrong');
-              }
-
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(
-                  child: LoadingAnimationWidget.discreteCircle(
-                    size: 32,
-                    color: const Color.fromARGB(255, 16, 16, 16),
-                    secondRingColor: Colors.indigo,
-                    thirdRingColor: Colors.pink.shade400,
                   ),
-                );
-              }
+              ],
+            ),
+            body: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('trajet').snapshots(),
+              builder: (
+                BuildContext context,
+                AsyncSnapshot<QuerySnapshot> snapshot,
+              ) {
+                if (snapshot.hasError) {
+                  return const Text('Erreur de chargement.');
+                }
 
-              return ListView(
-                children:
-                    snapshot.data!.docs.map((DocumentSnapshot document) {
-                      Map<String, dynamic> data =
-                          document.data()! as Map<String, dynamic>;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                        child: Column(
-                          children: [
-                            GestureDetector(
-                              onTap: () async {
-                                if (userData['role'] == 'admin') {
-                                  // aaaaaaaa;
-                                }
-                                if (userData['role'] == "client") {
-                                  if (data['disponible'] == 'non') {
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.warning,
-                                      title: 'Acces interdit',
-                                      text: 'Tous les places sont reservées',
-                                    );
-                                  } else {
-                                    final trajetId = data['trajet_id'];
-                                    final montant = data['prix'].toString();
-                                    await addMemeber(trajetId, montant);
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: LoadingAnimationWidget.discreteCircle(
+                      size: 32,
+                      color: const Color.fromARGB(255, 16, 16, 16),
+                      secondRingColor: Colors.indigo,
+                      thirdRingColor: Colors.pink.shade400,
+                    ),
+                  );
+                }
 
-                                    String newNotificationsId =
-                                        const Uuid().v1();
-                                    await FirebaseFirestore.instance
-                                        .collection('notification')
-                                        .doc(newNotificationsId)
-                                        .set({
-                                          'notification_id': newNotificationsId,
-                                          'date': DateTime.now(),
-                                          'titre': "Client reservation",
-                                          'content':
-                                              "Vous avez une nouvelle reservation",
-                                        });
-                                  }
-                                }
-                                if (userData['role'] == "conducteur") {
-                                  Get.to(
-                                    () => MembersList(
-                                      trajetId: data['trajet_id'],
-                                    ),
-                                  );
-                                }
-                              },
-
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  side: const BorderSide(
-                                    color: mainColor,
-                                    width: 1.2,
-                                  ),
-                                ),
-                                elevation: 5,
-                                color: Colors.white,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Row(
+                return ListView(
+                  children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                    Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6),
+                      child: GestureDetector(
+                        onTap: () {
+                          if (userData['role'] == 'conducteur') {
+                            Get.to(() => QRScannerPage(trajetId: data['trajet_id']));
+                          }
+                        },
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            side: const BorderSide(
+                              color: mainColor,
+                              width: 1.2,
+                            ),
+                          ),
+                          elevation: 5,
+                          color: Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "Point de depart 📍",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Gap(10),
-                                          Text(
-                                            "Destination 📍",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Gap(10),
-                                          Text(
-                                            "De ⌚",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Gap(10),
-                                          Text(
-                                            "Jusqu' ⌚",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Gap(10),
-                                          Text(
-                                            "Prix 💵",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Gap(10),
-                                          Text(
-                                            "Nombre des places 🔢",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Gap(10),
-                                          Text(
-                                            "Disponibilité 👌",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const Gap(20),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              data['point_depart'],
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const Gap(10),
-                                            Text(
-                                              data['destination'],
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const Gap(10),
-                                            Text(
-                                              data['start_time'],
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const Gap(10),
-                                            Text(
-                                              data['end_time'],
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const Gap(10),
-                                            Text(
-                                              "${data['prix']} DT",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const Gap(10),
-                                            Text(
-                                              data['nombre_places'].toString(),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const Gap(10),
-                                            data['disponible'].toString() ==
-                                                    "oui"
-                                                ? Text(
-                                                  "✅",
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                )
-                                                : Text(
-                                                  "❌",
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                          ],
-                                        ),
-                                      ),
-                                      userData['role'] == 'admin'
-                                          ? Column(
-                                            children: [
-                                              IconButton(
-                                                icon: const Icon(
-                                                  LineAwesomeIcons
-                                                      .trash_alt_solid,
-                                                  color: Colors.red,
-                                                ),
-                                                onPressed: () {
-                                                  FirebaseFirestore.instance
-                                                      .collection('trajet')
-                                                      .doc(data['trajet_id'])
-                                                      .delete();
-                                                },
-                                              ),
-
-                                              IconButton(
-                                                onPressed: () {
-                                                  showDialog(
-                                                    context: context,
-                                                    builder:
-                                                        (
-                                                          context,
-                                                        ) => AlertDialog(
-                                                          backgroundColor:
-                                                              Colors.white,
-                                                          actions: [
-                                                            TextButton(
-                                                              onPressed: () {
-                                                                Navigator.of(
-                                                                  context,
-                                                                ).pop();
-                                                              },
-                                                              child: const Text(
-                                                                "Retour",
-                                                                style: TextStyle(
-                                                                  color:
-                                                                      Colors
-                                                                          .red,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            TextButton(
-                                                              onPressed: () async {
-                                                                await FirebaseFirestore
-                                                                    .instance
-                                                                    .collection(
-                                                                      'trajet',
-                                                                    )
-                                                                    .doc(
-                                                                      data['trajet_id'],
-                                                                    )
-                                                                    .update({
-                                                                      'point_depart':
-                                                                          pointdepartController.text.isEmpty
-                                                                              ? data['point_depart']
-                                                                              : pointdepartController.text,
-                                                                      'destination':
-                                                                          destinationController.text.isEmpty
-                                                                              ? data['destination']
-                                                                              : destinationController.text,
-                                                                      'nombre_places':
-                                                                          nombredePlaceController.text.isEmpty
-                                                                              ? data['nombre_places']
-                                                                              : int.parse(
-                                                                                nombredePlaceController.text,
-                                                                              ),
-                                                                      'prix':
-                                                                          prixController.text.isEmpty
-                                                                              ? data['prix']
-                                                                              : double.parse(
-                                                                                prixController.text,
-                                                                              ),
-                                                                    });
-                                                                pointdepartController
-                                                                    .clear();
-                                                                destinationController
-                                                                    .clear();
-                                                                nombredePlaceController
-                                                                    .clear();
-                                                                prixController
-                                                                    .clear();
-                                                                if (!mounted)
-                                                                  return;
-                                                                Navigator.of(
-                                                                  context,
-                                                                ).pop();
-                                                                setState(() {});
-                                                              },
-                                                              child: const Text(
-                                                                "Modifier",
-                                                                style: TextStyle(
-                                                                  color:
-                                                                      mainColor,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                          contentPadding:
-                                                              const EdgeInsets.all(
-                                                                20,
-                                                              ),
-                                                          content: SizedBox(
-                                                            height: 390,
-                                                            child: Column(
-                                                              children: [
-                                                                SizedBox(
-                                                                  width:
-                                                                      MediaQuery.of(
-                                                                        context,
-                                                                      ).size.width,
-                                                                  height: 80,
-                                                                  child: TextField(
-                                                                    controller:
-                                                                        pointdepartController,
-                                                                    maxLines:
-                                                                        null,
-                                                                    expands:
-                                                                        true,
-                                                                    keyboardType:
-                                                                        TextInputType
-                                                                            .multiline,
-                                                                    decoration: InputDecoration(
-                                                                      hintText:
-                                                                          data['point_depart'],
-                                                                      hintStyle:
-                                                                          const TextStyle(
-                                                                            color:
-                                                                                Colors.black87,
-                                                                          ),
-                                                                      enabledBorder: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                        borderSide: const BorderSide(
-                                                                          color: Color.fromARGB(
-                                                                            255,
-                                                                            220,
-                                                                            220,
-                                                                            220,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      border: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                      ),
-                                                                      focusedBorder: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                        borderSide: const BorderSide(
-                                                                          color: Color.fromARGB(
-                                                                            255,
-                                                                            220,
-                                                                            220,
-                                                                            220,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      contentPadding: const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            15,
-                                                                        vertical:
-                                                                            15,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const Gap(20),
-                                                                SizedBox(
-                                                                  width:
-                                                                      MediaQuery.of(
-                                                                        context,
-                                                                      ).size.width,
-                                                                  height: 80,
-                                                                  child: TextField(
-                                                                    controller:
-                                                                        destinationController,
-                                                                    maxLines:
-                                                                        null,
-                                                                    expands:
-                                                                        true,
-                                                                    keyboardType:
-                                                                        TextInputType
-                                                                            .multiline,
-                                                                    decoration: InputDecoration(
-                                                                      hintText:
-                                                                          data['destination'],
-                                                                      hintStyle:
-                                                                          const TextStyle(
-                                                                            color:
-                                                                                Colors.black87,
-                                                                          ),
-                                                                      enabledBorder: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                        borderSide: const BorderSide(
-                                                                          color: Color.fromARGB(
-                                                                            255,
-                                                                            220,
-                                                                            220,
-                                                                            220,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      border: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                      ),
-                                                                      focusedBorder: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                        borderSide: const BorderSide(
-                                                                          color: Color.fromARGB(
-                                                                            255,
-                                                                            220,
-                                                                            220,
-                                                                            220,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      contentPadding: const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            15,
-                                                                        vertical:
-                                                                            15,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const Gap(20),
-                                                                SizedBox(
-                                                                  width:
-                                                                      MediaQuery.of(
-                                                                        context,
-                                                                      ).size.width,
-                                                                  height: 80,
-                                                                  child: TextField(
-                                                                    controller:
-                                                                        nombredePlaceController,
-                                                                    maxLines:
-                                                                        null,
-                                                                    expands:
-                                                                        true,
-                                                                    keyboardType:
-                                                                        TextInputType
-                                                                            .multiline,
-                                                                    decoration: InputDecoration(
-                                                                      hintText:
-                                                                          data['nombre_places']
-                                                                              .toString(),
-                                                                      hintStyle:
-                                                                          const TextStyle(
-                                                                            color:
-                                                                                Colors.black87,
-                                                                          ),
-                                                                      enabledBorder: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                        borderSide: const BorderSide(
-                                                                          color: Color.fromARGB(
-                                                                            255,
-                                                                            220,
-                                                                            220,
-                                                                            220,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      border: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                      ),
-                                                                      focusedBorder: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                        borderSide: const BorderSide(
-                                                                          color: Color.fromARGB(
-                                                                            255,
-                                                                            220,
-                                                                            220,
-                                                                            220,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      contentPadding: const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            15,
-                                                                        vertical:
-                                                                            15,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const Gap(20),
-                                                                SizedBox(
-                                                                  width:
-                                                                      MediaQuery.of(
-                                                                        context,
-                                                                      ).size.width,
-                                                                  height: 80,
-                                                                  child: TextField(
-                                                                    controller:
-                                                                        prixController,
-                                                                    maxLines:
-                                                                        null,
-                                                                    expands:
-                                                                        true,
-                                                                    keyboardType:
-                                                                        TextInputType
-                                                                            .multiline,
-                                                                    decoration: InputDecoration(
-                                                                      hintText:
-                                                                          data['prix']
-                                                                              .toString(),
-                                                                      hintStyle:
-                                                                          const TextStyle(
-                                                                            color:
-                                                                                Colors.black87,
-                                                                          ),
-                                                                      enabledBorder: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                        borderSide: const BorderSide(
-                                                                          color: Color.fromARGB(
-                                                                            255,
-                                                                            220,
-                                                                            220,
-                                                                            220,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      border: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                      ),
-                                                                      focusedBorder: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              25,
-                                                                            ),
-                                                                        borderSide: const BorderSide(
-                                                                          color: Color.fromARGB(
-                                                                            255,
-                                                                            220,
-                                                                            220,
-                                                                            220,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      contentPadding: const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            15,
-                                                                        vertical:
-                                                                            15,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-                                                  );
-                                                },
-                                                icon: const Icon(
-                                                  Icons.edit,
-                                                  color: Color.fromARGB(
-                                                    255,
-                                                    55,
-                                                    211,
-                                                    61,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          )
-                                          : SizedBox(),
+                                      Text("Point de départ 📍: ${data['point_depart']}"),
+                                      const SizedBox(height: 6),
+                                      Text("Destination 📍: ${data['destination']}"),
+                                      const SizedBox(height: 6),
+                                      Text("Heure de départ ⌚: ${data['start_time']}"),
+                                      const SizedBox(height: 6),
+                                      Text("Heure d'arrivée ⌚: ${data['end_time']}"),
+                                      const SizedBox(height: 6),
+                                      Text("Prix 💵: ${data['prix']} DT"),
+                                      const SizedBox(height: 8),
                                     ],
                                   ),
                                 ),
-                              ),
+                                if (userData['role'] == 'admin')
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          color: Colors.green,
+                                        ),
+                                        onPressed: () {
+                                          pointdepartController.clear();
+                                          destinationController.clear();
+                                          prixController.clear();
+
+                                          showDialog(
+                                            context: context,
+                                            builder: (_) => AlertDialog(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              backgroundColor: Colors.white,
+                                              title: const Text(
+                                                "Modifier le trajet",
+                                                style: TextStyle(fontWeight: FontWeight.bold),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              content: SingleChildScrollView(
+                                                child: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const SizedBox(height: 10),
+                                                    TextField(
+                                                      controller: pointdepartController,
+                                                      decoration: InputDecoration(
+                                                        labelText: 'Point de départ',
+                                                        hintText: data['point_depart'],
+                                                        border: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(12)),
+                                                        filled: true,
+                                                        fillColor: Colors.grey[100],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 15),
+                                                    TextField(
+                                                      controller: destinationController,
+                                                      decoration: InputDecoration(
+                                                        labelText: 'Destination',
+                                                        hintText: data['destination'],
+                                                        border: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(12)),
+                                                        filled: true,
+                                                        fillColor: Colors.grey[100],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 15),
+                                                    TextField(
+                                                      controller: prixController,
+                                                      keyboardType: TextInputType.number,
+                                                      decoration: InputDecoration(
+                                                        labelText: 'Prix',
+                                                        hintText: data['prix'].toString(),
+                                                        border: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(12)),
+                                                        filled: true,
+                                                        fillColor: Colors.grey[100],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              actionsAlignment: MainAxisAlignment.spaceBetween,
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context),
+                                                  child: const Text(
+                                                    "Annuler",
+                                                    style: TextStyle(color: Colors.red),
+                                                  ),
+                                                ),
+                                                ElevatedButton(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: mainColor,
+                                                    shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(10)),
+                                                  ),
+                                                  onPressed: () async {
+                                                    await FirebaseFirestore.instance
+                                                        .collection('trajet')
+                                                        .doc(data['trajet_id'])
+                                                        .update({
+                                                      'point_depart':
+                                                          pointdepartController.text.isEmpty
+                                                              ? data['point_depart']
+                                                              : pointdepartController.text,
+                                                      'destination':
+                                                          destinationController.text.isEmpty
+                                                              ? data['destination']
+                                                              : destinationController.text,
+                                                      'prix': prixController.text.isEmpty
+                                                          ? data['prix']
+                                                          : double.parse(prixController.text),
+                                                    });
+                                                    Navigator.pop(context);
+                                                  },
+                                                  child: const Text("Modifier" , style: TextStyle(color: Colors.white),),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          LineAwesomeIcons.trash_alt_solid,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () async {
+                                          await FirebaseFirestore.instance
+                                              .collection('trajet')
+                                              .doc(data['trajet_id'])
+                                              .delete();
+                                        },
+                                      ),
+                                    ],
+                                  )
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      );
-                    }).toList(),
-              );
-            },
-          ),
-        );
-  }
-
-  Future<void> addMemeber(String trajetId, String montant) async {
-    final userId = userData['uid'];
-    final trajetRef = FirebaseFirestore.instance
-        .collection('trajet')
-        .doc(trajetId);
-    final reservationRef = trajetRef.collection('reservations').doc(userId);
-
-    // 🔁 Vérifier si l'utilisateur a déjà réservé
-    final reservationSnapshot = await reservationRef.get();
-    if (reservationSnapshot.exists) {
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        title: 'Déjà réservé',
-        text: 'Vous avez déjà réservé ce trajet.',
-      );
-      return;
-    }
-
-    // 🔁 Vérifier le nombre de places
-    final trajetSnapshot = await trajetRef.get();
-    final trajetData = trajetSnapshot.data();
-
-    if (trajetData == null) return;
-
-    int currentPlaces = trajetData['nombre_places'] ?? 0;
-
-    if (currentPlaces <= 0) {
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        title: 'Complet',
-        text: 'Ce trajet est complet, aucune place disponible.',
-      );
-      return;
-    }
-
-    // ✅ Ajouter la réservation
-    await reservationRef.set({
-      'user_id': userId,
-      'solde': userData['solde'],
-      'nom': userData['nom'],
-      'prenom': userData['prenom'],
-      'montant': montant,
-      'paye': 'non',
-    });
-
-    // ✅ Mettre à jour le nombre de places
-    int newPlaces = currentPlaces - 1;
-    Map<String, dynamic> updates = {'nombre_places': newPlaces};
-
-    if (newPlaces <= 0) {
-      updates['disponible'] = 'non';
-    }
-    await trajetRef.update(updates);
-    QuickAlert.show(
-      context: context,
-      type: QuickAlertType.success,
-      title: 'Succès',
-      text: 'Vous avez réservé votre place.',
-    );
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userData['uid'])
-        .update({
-          'qr_data':
-              'user_id:$userId,montant:$montant,solde:${userData['solde']}',
-        });
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          );
   }
 }

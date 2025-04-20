@@ -16,91 +16,127 @@ class _QRScannerPageState extends State<QRScannerPage> {
   bool isProcessing = false;
 
   void handleScan(String raw) async {
-  if (isProcessing) return;
-  isProcessing = true;
+    if (isProcessing) return;
+    isProcessing = true;
 
-  try {
-    if (!raw.contains("user_id:") || !raw.contains("montant:")) {
-      throw Exception("QR invalide");
+    try {
+      if (!raw.contains("user_id:") || !raw.contains("solde:")) {
+        throw Exception("QR invalide");
+      }
+
+      final parts = raw.split(',');
+      final userId = parts[0].split(':')[1].trim();
+
+      // 🔁 Récupérer le montant du trajet
+      final trajetSnapshot = await FirebaseFirestore.instance
+          .collection('trajet')
+          .doc(widget.trajetId)
+          .get();
+
+      if (!trajetSnapshot.exists) {
+        _showDialog("Trajet introuvable.");
+        return;
+      }
+
+      final montant = (trajetSnapshot.data()?['prix'] as num).toDouble();
+
+      // 🔁 Récupérer utilisateur
+      final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+      final userSnapshot = await userRef.get();
+
+      if (!userSnapshot.exists) {
+        _showDialog("Utilisateur non trouvé.");
+        return;
+      }
+
+      double currentSolde = (userSnapshot.data()?['solde'] ?? 0).toDouble();
+
+      // 🔁 Échec paiement
+      if (currentSolde < montant) {
+        String notifId = const Uuid().v1();
+
+        // ✅ Notification personnelle
+        Map<String, dynamic> notifDataEchecUser = {
+          'notification_id': notifId,
+          'date': DateTime.now(),
+          'titre': "Paiement échoué",
+          'content': "Votre paiement a échoué. Solde insuffisant.",
+        };
+
+        // ✅ Notification globale
+        Map<String, dynamic> notifDataEchecGlobal = {
+          'notification_id': notifId,
+          'date': DateTime.now(),
+          'titre': "Paiement échoué",
+          'content': "Un paiement a échoué à cause d’un solde insuffisant.",
+        };
+
+        // 🔁 Sauvegarde des notifications
+        await userRef.collection("notification").doc(notifId).set(notifDataEchecUser);
+        await FirebaseFirestore.instance
+            .collection("notification")
+            .doc(notifId)
+            .set(notifDataEchecGlobal);
+
+        _showDialog("Solde insuffisant !");
+        return;
+      }
+
+      // ✅ Paiement accepté
+      double newSolde = currentSolde - montant;
+
+      await userRef.update({
+        'solde': newSolde,
+        'qr_data': "user_id:$userId,solde:$newSolde",
+      });
+
+      // ✅ Enregistrement transaction
+      int lastNumber = userSnapshot.data()?['last_transaction_number'] ?? 0;
+      int newNumber = lastNumber + 1;
+
+      String transactionId = const Uuid().v1();
+      await userRef.collection("transactions").doc(transactionId).set({
+        'transaction_id': transactionId,
+        'time': DateTime.now(),
+        'titre': "Bonde sortante",
+        'montant': -montant, // ✅ valeur numérique négative
+        'numero_transaction': newNumber,
+      });
+
+      await userRef.update({'last_transaction_number': newNumber});
+
+      // ✅ Notification succès
+      String successNotifId = const Uuid().v1();
+
+      // 🔁 Notification utilisateur
+      Map<String, dynamic> notifDataSuccessUser = {
+        'notification_id': successNotifId,
+        'date': DateTime.now(),
+        'titre': "Paiement confirmé",
+        'content': "Votre paiement de $montant DT a été effectué avec succès.",
+      };
+
+      // 🔁 Notification globale
+      Map<String, dynamic> notifDataSuccessGlobal = {
+        'notification_id': successNotifId,
+        'date': DateTime.now(),
+        'titre': "Paiement confirmé",
+        'content': "Un paiement de $montant DT a été effectué avec succès.",
+      };
+
+      // 🔁 Sauvegarde des notifications
+      await userRef.collection("notification").doc(successNotifId).set(notifDataSuccessUser);
+      await FirebaseFirestore.instance
+          .collection("notification")
+          .doc(successNotifId)
+          .set(notifDataSuccessGlobal);
+
+      _showDialog("✅ Paiement effectué\n💵 Bon de sortie : $montant DT");
+
+    } catch (e) {
+      _showDialog("Erreur lors du scan : $e");
     }
-
-    final parts = raw.split(',');
-    final userId = parts[0].split(':')[1].trim();
-    final montantString = parts[1].split(':')[1].trim();
-    final montant = double.parse(montantString).round();
-
-    final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
-    final userSnapshot = await userDoc.get();
-
-    if (!userSnapshot.exists) {
-      _showDialog("Utilisateur non trouvé.");
-      return;
-    }
-
-    final currentSolde = userSnapshot.data()?['solde'] ?? 0;
-
-    if (currentSolde < montant) {
-      _showDialog("Solde insuffisant !");
-      String newNotificationsId = const Uuid().v1();
-      await userDoc.collection("notification").doc(newNotificationsId).set({
-      'notification_id': newNotificationsId,
-      'date': DateTime.now(),
-      'titre': "Paiement non effectué",
-      'content': "Votre solde est insuffisant pour payer ce trajet",
-    });
-      return;
-    }
-
-    // 🔁 Mise à jour du solde de l'utilisateur
-    await userDoc.update({
-      'solde': FieldValue.increment(-montant),
-      'qr_data': FieldValue.delete(), // ✅ Suppression du champ qr_data
-    });
-
-    // 🔁 Mise à jour de la réservation
-    final reservationRef = FirebaseFirestore.instance
-        .collection('trajet')
-        .doc(widget.trajetId)
-        .collection('reservations')
-        .doc(userId);
-
-    await reservationRef.update({
-      'paye': 'oui',
-      'solde': currentSolde - montant,
-    });
-
-    // 🔁 Gestion du numero_transaction
-    final userData = userSnapshot.data()!;
-    int lastNumber = userData['last_transaction_number'] ?? 0;
-    int newNumber = lastNumber + 1;
-
-    String newTransactionsId = const Uuid().v1();
-    await userDoc.collection("transactions").doc(newTransactionsId).set({
-      'transaction_id': newTransactionsId,
-      'time': DateTime.now(),
-      'titre': "Bonde sortante",
-      'montant': "$montant \$",
-      'numero_transaction': newNumber,
-    });
-
-    String newNotificationsId = const Uuid().v1();
-    await userDoc.collection("notification").doc(newNotificationsId).set({
-      'notification_id': newNotificationsId,
-      'date': DateTime.now(),
-      'titre': "Paiement confirmé",
-      'content': "Votre paiement a bien été bien effectué",
-    });
-
-
-    await userDoc.update({'last_transaction_number': newNumber});
-
-    _showDialog("Paiement confirmé ✅");
-  } catch (e) {
-    _showDialog("Erreur lors du scan : $e");
   }
-}
-
-
 
   Future<void> _showDialog(String message) async {
     await showDialog(
@@ -111,14 +147,15 @@ class _QRScannerPageState extends State<QRScannerPage> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Fermer l'alerte
-              Navigator.of(context).pop(); // Fermer le scanner
+              Navigator.of(context).pop(); // Fermer alert
+              Navigator.of(context).pop(); // Fermer scanner
             },
             child: const Text("OK"),
           )
         ],
       ),
     );
+    isProcessing = false;
   }
 
   @override
