@@ -76,7 +76,7 @@ class _TransactionsState extends State<Transactions> {
               ),
               actions: [
                 Text(
-                  "${userData['solde']} \$",
+                  "${userData['solde']} DT",
                   style: const TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.bold,
@@ -150,7 +150,7 @@ class _TransactionsState extends State<Transactions> {
             controller: amountController,
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              hintText: "Montant en USD",
+              hintText: "Montant en DT",
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

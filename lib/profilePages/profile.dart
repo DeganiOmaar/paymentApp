@@ -90,7 +90,7 @@ class _ProfileState extends State<Profile> {
                     height: 20,
                   ),
                   SvgPicture.asset(
-                    'assets/images/avatar.svg',
+                    'assets/images/profilepic.svg',
                     height: 100.0,
                     width: 100.0,
                     allowDrawingOutsideViewBox: true,
