@@ -7,6 +7,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:stripeapp/adminDashboard/dashboard.dart';
 import 'package:stripeapp/profilePages/editprofile.dart';
 import 'package:stripeapp/profilePages/profilecard.dart';
 import 'package:stripeapp/registerScreens/login.dart';
@@ -67,6 +68,11 @@ class _ProfileState extends State<Profile> {
          Scaffold(
           backgroundColor: Colors.white,
                      appBar: AppBar(
+                      actions: [
+                        userData['role'] == 'admin'? IconButton(onPressed: (){
+                          Get.to(()=>DashboardPage());
+                        }, icon: Icon(Icons.analytics)): SizedBox()
+                       ],
                       leading: SizedBox(),
                       backgroundColor: Colors.white,
             centerTitle: true,
